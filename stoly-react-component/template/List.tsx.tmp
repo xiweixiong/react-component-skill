@@ -1,0 +1,70 @@
+import { useRef } from 'react'
+import { Flex, Form, Input, Space, Table } from 'antd'
+import { RcModal, RcTable, RcTableForm, type RcTableRef } from '@stoly/react-component'
+import EditModal, { type EditParams } from './Edit'
+
+interface Query extends RcQueryData {
+  name?: string
+}
+interface Row {
+  id: number
+  name: string
+}
+
+const ListPage = () => {
+  const query = RcTableForm.useQuery<Query>()
+  const controller = RcTableForm.useController()
+  const modal = RcModal.useModal<EditParams>()
+  const tableRef = useRef<RcTableRef<Row>>(null)
+
+  return (
+    <>
+      <RcTableForm<Query> query={query} controller={controller}>
+        <Flex gap={12} wrap>
+          <Form.Item name="field1" label="字段1">
+            <Input placeholder="请输入字段1" />
+          </Form.Item>
+        </Flex>
+      </RcTableForm>
+
+      <RcTable<Row, Params, Result, Query>
+        ref={tableRef}
+        query={query}
+        api={fetchList}
+        queryFormat={(q) => q}
+        dataFormat={(res) => ({ rows: res.data.list, total: res.data.total })}
+        rowKey="id"
+      >
+        <Table.Column<Row> title="姓名" dataIndex="name" key="name" />
+        <Table.Column<Row>
+          {...RcTable.OperateColumnProps}
+          key="operate"
+          render={(_, record) => (
+            <Space>
+              <a onClick={() => modal.open({ id: String(record.id) })}>编辑</a>
+              <a
+                onClick={() =>
+                  RcModal.confirm(
+                    {
+                      api: deleteApi,
+                      params: record.id,
+                      query,
+                      tableData: tableRef.current?.getCurrentData(),
+                    },
+                    { title: '删除', content: '确认删除该条数据？' },
+                  )
+                }
+              >
+                删除
+              </a>
+            </Space>
+          )}
+        />
+      </RcTable>
+
+      <EditModal modal={modal} query={query} />
+    </>
+  )
+}
+
+export default ListPage

@@ -1,0 +1,76 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { RcModal, type RcModalProps } from '@stoly/react-component'
+import { Form, Input, Spin, message } from 'antd'
+
+export type EditParams = {
+  id?: string
+}
+type FormType = {}
+
+const EditModal: React.FC<RcModalProps<EditParams>> = ({ modal, query }) => {
+  const id = useMemo(() => modal.params?.id, [modal.params?.id])
+  const [form] = Form.useForm<FormType>()
+  const [loading, setLoading] = useState(false)
+  const [submiting, setSubmiting] = useState(false)
+
+  useEffect(() => {
+    if (modal.visable && id) loadDetail.current(id)
+  }, [modal.visable, id])
+
+  /** 加载详情 */
+  const loadDetail = useRef(async (id: string) => {
+    setLoading(true)
+    const res = await detailApi({ queryParams: { id: id } })
+    if (res.success) {
+      form.setFieldsValue({ ...res.data })
+    }
+    setLoading(false)
+  })
+
+  const handleClose = useRef(() => {
+    form.resetFields()
+    modal.close()
+  })
+
+  const handleSubmit = useRef(() => {
+    form.validateFields().then(async (formData) => {
+      setSubmiting(true)
+      const api = formData.id ? updateApi : createApi
+      const res = await api({ queryParams: {}, bodyParams: { ...formData } })
+      setSubmiting(false)
+      if (res.success) {
+        message.success('保存成功')
+        handleClose.current()
+        query?.refresh()
+      }
+    })
+  })
+
+  return (
+    <RcModal
+      open={modal.visable}
+      centered
+      title={id ? '编辑' : '新增'}
+      width={800}
+      onCancel={handleClose.current}
+      onOk={handleSubmit.current}
+      okButtonProps={{ loading: submiting }}
+    >
+      <Spin spinning={loading}>
+        <Form form={form} labelCol={{ span: 3, offset: 2 }} wrapperCol={{ span: 16 }}>
+          <Form.Item name="id" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item label="字段1" name="field1" rules={[{ required: true, message: '请输入字段1' }]}>
+            <Input placeholder="请输入角色名称" maxLength={20} allowClear />
+          </Form.Item>
+          <Form.Item label="字段2" name="field2" rules={[{ required: true, message: '请输入字段2' }]}>
+            <Input placeholder="请输入字段2" maxLength={20} allowClear />
+          </Form.Item>
+        </Form>
+      </Spin>
+    </RcModal>
+  )
+}
+
+export default EditModal
